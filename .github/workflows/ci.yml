@@ -37,14 +37,14 @@ jobs:
         run: |
           go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
 
-      - name: migrate up
-        run: |
-          make migrateup
-
       - name: Get dependencies
         run: |
           go mod tidy
           go mod download
+
+      - name: migrate up
+        run: |
+          make migrateup
 
       - name: Run tests
         run: |
