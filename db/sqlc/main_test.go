@@ -10,7 +10,7 @@ import (
 	"github.com/techschool/simplebank/util"
 )
 
-var testStore *Store
+var testStore *SQLStore
 
 func TestMain(m *testing.M) {
 	config, err := util.LoadConfig("../..")
@@ -23,6 +23,9 @@ func TestMain(m *testing.M) {
 		log.Fatal("cannot connect to db:", err)
 	}
 
-	testStore = NewStore(connPool)
+	testStore = &SQLStore{
+		db:      connPool,
+		Queries: New(connPool),
+	}
 	os.Exit(m.Run())
 }
