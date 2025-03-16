@@ -17,14 +17,6 @@ type transferRequest struct {
 	Currency      string `json:"currency" binding:"required,currency"`
 }
 
-type transferResponse struct {
-	ID            int64  `json:"id"`
-	FromAccountID int64  `json:"from_account_id"`
-	ToAccountID   int64  `json:"to_account_id"`
-	Amount        int64  `json:"amount"`
-	Currency      string `json:"currency"`
-}
-
 func (server *Server) createTransfer(ctx *gin.Context) {
 	var req transferRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
