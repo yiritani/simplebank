@@ -13,30 +13,6 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func (server *Server) CreateUser(ctx context.Context, req *pb.CreateUserRequest) (*pb.CreateUserResponse, error) {
-	hashedPassword, err := util.HashPassword(req.Password)
-	if err != nil {
-		return nil, fmt.Errorf("failed to hash password: %w", err)
-	}
-
-	arg := db.CreateUserParams{
-		Username:       req.Username,
-		HashedPassword: hashedPassword,
-		FullName:       req.FullName,
-		Email:          req.Email,
-	}
-
-	user, err := server.store.CreateUser(ctx, arg)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create user: %w", err)
-	}
-
-	rsp := &pb.CreateUserResponse{
-		User: convertUser(user),
-	}
-	return rsp, nil
-}
-
 func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
 	user, err := server.store.GetUser(ctx, req.Username)
 	if err != nil {
@@ -58,12 +34,13 @@ func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (
 		return nil, fmt.Errorf("failed to create refresh token: %w", err)
 	}
 
+	mtdt := server.extractMetadata(ctx)
 	session, err := server.store.CreateSession(ctx, db.CreateSessionParams{
 		ID:           uuid.New(),
 		Username:     user.Username,
 		RefreshToken: refreshToken,
-		UserAgent:    "grpc",
-		ClientIp:     "0.0.0.0",
+		UserAgent:    mtdt.UserAgent,
+		ClientIp:     mtdt.ClientIP,
 		IsBlocked:    false,
 		ExpiresAt:    time.Now().Add(server.config.RefreshTokenDuration),
 	})
@@ -91,4 +68,3 @@ func convertUser(user db.User) *pb.User {
 		CreatedAt:         timestamppb.New(user.CreatedAt),
 	}
 }
-
