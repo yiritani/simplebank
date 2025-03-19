@@ -6,14 +6,21 @@ import (
 	db "simplebank/db/sqlc"
 	"simplebank/pb"
 	"simplebank/util"
+	"simplebank/val"
 	"time"
 
 	"github.com/google/uuid"
 
+	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 func (server *Server) LoginUser(ctx context.Context, req *pb.LoginUserRequest) (*pb.LoginUserResponse, error) {
+	violations := validateLoginUserRequest(req)
+	if len(violations) > 0 {
+		return nil, invalidArgumentError(violations)
+	}
+
 	user, err := server.store.GetUser(ctx, req.Username)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get user: %w", err)
@@ -67,4 +74,15 @@ func convertUser(user db.User) *pb.User {
 		PasswordChangedAt: timestamppb.New(user.PasswordChangedAt),
 		CreatedAt:         timestamppb.New(user.CreatedAt),
 	}
+}
+
+func validateLoginUserRequest(req *pb.LoginUserRequest) []*errdetails.BadRequest_FieldViolation {
+	var violations []*errdetails.BadRequest_FieldViolation
+	if err := val.ValidateUsername(req.Username); err != nil {
+		violations = append(violations, fieldViolations("username", err))
+	}
+	if err := val.ValidatePassword(req.Password); err != nil {
+		violations = append(violations, fieldViolations("password", err))
+	}
+	return violations
 }
